@@ -1,8 +1,8 @@
 module TestPoly
 using Test
 
-using Poly
 using Catlab.CategoricalAlgebra: is_isomorphic
+using Poly
 
 p = FinPoly([3,2,0])
 @test p == FinPoly(FinFunction([1,1,1,2,2],3))

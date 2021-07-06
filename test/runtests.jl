@@ -4,6 +4,6 @@ using Test
   include("FinPolynomials.jl")
 end
 
-#@testset "SumProdPoly" begin
-#  include("SumProdPoly.jl")
-#end
+@testset "SumProdPoly" begin
+  include("SumProdPolynomials.jl")
+end

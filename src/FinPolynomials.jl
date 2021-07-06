@@ -10,7 +10,7 @@ export AbstractFinPoly, FinPoly, FinSet, FinFunction, positions, directions,
 
 using Catlab, Catlab.CategoricalAlgebra, Catlab.CategoricalAlgebra.FinSets
 using Catlab.Theories
-import Catlab.Theories: proj, plus, times, otimes, ⊗
+import Catlab.Theories: proj, plus, otimes, ⊗
 
 @present FinPolySchema(FreeSchema) begin
   (Pos, Dir)::Ob
