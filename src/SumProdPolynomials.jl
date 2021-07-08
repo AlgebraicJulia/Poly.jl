@@ -8,6 +8,22 @@ using Catlab, Catlab.CategoricalAlgebra, Catlab.CategoricalAlgebra.FinSets
 using ..FinPolynomials
 import Catlab.Theories: plus, otimes, ⊗, compose
 
+"""
+Polynomials of the form:
+
+Σₘ (Πₒ (Tₒ ⋅ y ^( Σₛ Πᵢ Tᵢ )))
+  where:
+    m ∈ Mode
+    o ∈ out_mode⁻¹(m)
+    s ∈ mode⁻¹(m)
+    i ∈ signature⁻¹(s)
+    Tₒ = out_type(o)
+    Tᵢ = in_type(i)
+
+Out ⟶ Mode ⟵ Signature ⟵ In
+ ↓                          ↓
+Type == == == == == == == Type
+"""
 @present SumProdPolySchema(FreeSchema) begin
   (Mode, Out, Signature, In)::Ob
   mode::Hom(Signature, Mode)
@@ -48,8 +64,12 @@ end
 plus(p::AbstractSumProdPoly, q::AbstractSumProdPoly) = ob(coproduct(p, q))
 Base.:+(p::AbstractSumProdPoly, q::AbstractSumProdPoly) = plus(p, q)
 
-function otimes(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol}) :: SumProdPoly{Symbol}
-
+"""
+O₁M₂+M₁O₂ ⟶ M₁M₂ ⟵ S₁S₂ ⟵ I₁S₂+S₁I₂
+ ↓                               ↓
+Type == == == == == == == == == Type
+"""
+function otimes(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol})::SumProdPoly{Symbol}
     r = SumProdPoly{Symbol}()
     comps = [:Mode, :Signature]
     pmodes, psigs = [nparts(p, x) for x in comps]
@@ -78,46 +98,48 @@ function otimes(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol}) :: SumProdPoly{S
 
 end
 
-# function times(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol}) :: SumProdPoly{Symbol}
+"""
+O₁M₂+M₁O₂ ⟶ M₁M₂ ⟵ S₁M₂+M₁S₂ ⟵ I₁M₂+M₁I₂
+ ↓                                    ↓
+Type == == == == == == == == == == == Type
+"""
+function times(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol}) :: SumProdPoly{Symbol}
 
-#     r = SumProdPoly{Symbol}()
+    r = SumProdPoly{Symbol}()
 
-#     pmodes = nparts(p, :Mode)
-#     qmodes = nparts(q, :Mode)
-#     pmodefunc = FinFunction(p[:out_mode], pmodes)
-#     qmodefunc = FinFunction(q[:out_mode], qmodes)
+    comps = [:Mode, :Signature]
+    pmodes, psigs = [nparts(p, x) for x in comps]
+    qmodes, qsigs = [nparts(q, x) for x in comps]
+    funs = [:out_mode, :signature]
+    pmodefunc, psigfunc = [FinFunction(p, x) for x in funs]
+    qmodefunc, qsigfunc = [FinFunction(q, x) for x in funs]
 
-#     psigs = nparts(p, :Signature)
-#     qsigs = nparts(q, :Signature)
-#     psigfunc = FinFunction(p[:signature], psigs)
-#     qsigfunc = FinFunction(q[:signature], qsigs)
+    sig_prod = product(FinSet(psigs), FinSet(qsigs))
+    sig1 = compose(proj1(sig_prod), FinFunction(p[:mode], pmodes))
+    sig2 = compose(proj2(sig_prod), FinFunction(q[:mode], qmodes))
+    sig_pair = pair(sig1, sig2)
 
-#     sig_prod = product(FinSet(psigs), FinSet(qsigs))
-#     sig1 = compose(proj1(sig_prod), FinFunction(p[:mode], pmodes))
-#     sig2 = compose(proj2(sig_prod), FinFunction(q[:mode], qmodes))
-#     sig_pair = pair(sig1, sig2)
+    fs_sig = Fibered_sum(pmodefunc,qmodefunc)
 
-#     fs_sig = Fibered_sum(pmodefunc,qmodefunc)
+    add_parts!(r, :Mode, pmodes*qmodes)
+    add_parts!(r, :Signature, pmodes*qsigs + qmodes*psigs)
 
-#     add_parts!(r, :Mode, pmodes*qmodes)
-#     add_parts!(r, :Signature, pmodes*qsigs + qmodes*psigs)
+    add_parts!(r, :Out, nparts(p, :Out)*qmodes + nparts(q, :Out)*pmodes)
+    add_parts!(r, :In, nparts(p, :In)*qsigs + nparts(q, :In)*psigs)
 
-#     add_parts!(r, :Out, nparts(p, :Out)*qmodes + nparts(q, :Out)*pmodes)
-#     add_parts!(r, :In, nparts(p, :In)*qsigs + nparts(q, :In)*psigs)
+    #fs_out = Fibered_sum(pmodefunc, qmodefunc)
+    fs_in  = Fibered_sum(psigfunc, qsigfunc)
 
-#     #fs_out = Fibered_sum(pmodefunc, qmodefunc)
-#     fs_in  = Fibered_sum(psigfunc, qsigfunc)
+    set_subpart!(r, :mode, collect(fs_sig.h))
+    #set_subpart!(r, :out_mode, collect(fs_out.h))
+    set_subpart!(r, :signature, collect(fs_in.h))
 
-#     set_subpart!(r, :mode, collect(fs_sig.h))
-#     #set_subpart!(r, :out_mode, collect(fs_out.h))
-#     set_subpart!(r, :signature, collect(fs_in.h))
+    #set_subpart!(r, :out_type, pairsum_mapout(Fibered_sum(pmodefunc, qmodefunc), p[:out_type], q[:out_type]))
+    set_subpart!(r, :in_type, pairsum_mapout(Fibered_sum(psigfunc, qsigfunc), p[:in_type], q[:in_type]))
 
-#     #set_subpart!(r, :out_type, pairsum_mapout(Fibered_sum(pmodefunc, qmodefunc), p[:out_type], q[:out_type]))
-#     set_subpart!(r, :in_type, pairsum_mapout(Fibered_sum(psigfunc, qsigfunc), p[:in_type], q[:in_type]))
+    return r
 
-#     return r
-
-# end
+end
 
 function pairsum_mapout(ai_jb::Fibered_sum, at::Vector, bt::Vector)
 
