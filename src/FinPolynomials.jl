@@ -63,7 +63,7 @@ proj(p::AbstractFinPoly) = FinFunction(p, :pos)
 plus(p::AbstractFinPoly, q::AbstractFinPoly) = ob(coproduct(p, q))
 Base.:+(p::AbstractFinPoly, q::AbstractFinPoly) = plus(p, q)
 
-times(p::P, q::P) where P <: AbstractFinPoly = P(fiber_sum(proj(p), proj(q)).h)
+times(p::P, q::P) where P <: AbstractFinPoly = P(Fibered_sum(proj(p), proj(q)).h)
 Base.:*(p::AbstractFinPoly, q::AbstractFinPoly) = times(p, q)
 
 otimes(p::AbstractFinPoly, q::AbstractFinPoly) = ob(product(p, q))

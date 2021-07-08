@@ -51,38 +51,29 @@ Base.:+(p::AbstractSumProdPoly, q::AbstractSumProdPoly) = plus(p, q)
 function otimes(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol}) :: SumProdPoly{Symbol}
 
     r = SumProdPoly{Symbol}()
+    comps = [:Mode, :Signature]
+    pmodes, psigs = [nparts(p, x) for x in comps]
+    qmodes, qsigs = [nparts(q, x) for x in comps]
+    funs = [:out_mode, :signature]
+    pmodefunc, psigfunc = [FinFunction(p, x) for x in funs]
+    qmodefunc, qsigfunc = [FinFunction(q, x) for x in funs]
 
-    pmodes = nparts(p, :Mode)
-    qmodes = nparts(q, :Mode)
-    pmodefunc = FinFunction(p[:out_mode], pmodes)
-    qmodefunc = FinFunction(q[:out_mode], qmodes)
-
-    psigs = nparts(p, :Signature)
-    qsigs = nparts(q, :Signature)
-    psigfunc = FinFunction(p[:signature], psigs)
-    qsigfunc = FinFunction(q[:signature], qsigs)
-
-    sig_prod = product(FinSet(psigs), FinSet(qsigs))
-    sig1 = compose(proj1(sig_prod), FinFunction(p[:mode], pmodes))
-    sig2 = compose(proj2(sig_prod), FinFunction(q[:mode], qmodes))
+    sig_prod = product(FinSet(p, :Signature), FinSet(q, :Signature))
+    sig1 = compose(proj1(sig_prod), FinFunction(p, :mode))
+    sig2 = compose(proj2(sig_prod), FinFunction(q, :mode))
     sig_pair = pair(sig1, sig2)
-
-    add_parts!(r, :Mode, pmodes*qmodes)
-    add_parts!(r, :Signature, psigs*qsigs)
-
-    add_parts!(r, :Out, nparts(p, :Out)*qmodes + nparts(q, :Out)*pmodes)
-    add_parts!(r, :In, nparts(p, :In)*qsigs + nparts(q, :In)*psigs)
-
     fs_out = Fibered_sum(pmodefunc, qmodefunc)
     fs_in  = Fibered_sum(psigfunc, qsigfunc)
-
-    set_subpart!(r, :mode, collect(sig_pair))
-    set_subpart!(r, :out_mode, collect(fs_out.h))
-    set_subpart!(r, :signature, collect(fs_in.h))
-
-    set_subpart!(r, :out_type, pairsum_mapout(Fibered_sum(pmodefunc, qmodefunc), p[:out_type], q[:out_type]))
-    set_subpart!(r, :in_type, pairsum_mapout(Fibered_sum(psigfunc, qsigfunc), p[:in_type], q[:in_type]))
-
+    ot = pairsum_mapout(fs_out, p[:out_type], q[:out_type])
+    it = pairsum_mapout(fs_in, p[:in_type], q[:in_type])
+    add_parts!(r, :Mode, pmodes*qmodes)
+    add_parts!(r, :Signature, psigs*qsigs, mode=collect(sig_pair))
+    add_parts!(r, :Out, nparts(p, :Out)*qmodes + nparts(q, :Out)*pmodes,
+               out_mode=collect(fs_out.h),
+               out_type=ot)
+    add_parts!(r, :In, nparts(p, :In)*qsigs + nparts(q, :In)*psigs,
+               signature=collect(fs_in.h),
+               in_type=it)
     return r
 
 end

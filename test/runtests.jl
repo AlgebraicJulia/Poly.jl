@@ -1,3 +1,5 @@
+module PolyTests
+
 using Test
 
 @testset "FinPoly" begin
@@ -6,4 +8,6 @@ end
 
 @testset "SumProdPoly" begin
   include("SumProdPolynomials.jl")
+end
+
 end
