@@ -1,37 +1,40 @@
 module TestSumProdPolynomials
-using Test
+export p,q,r,pr,pr_expected,pq,pq_expected
 
+using Test
 using Poly
 using Catlab.CategoricalAlgebra.CSets
 
+
+# SA⋅y^S + S⋅y^B
 p = SumProdPoly{Symbol}([ [[:B]] => [:S], [[:S]] => [:S,:A] ])
 q = SumProdPoly{Symbol}([ [[:A]] => [:B] ])
+# y + A⋅y^(BS)
 r = SumProdPoly{Symbol}([ [[:B],[:S]] => [:A] , [[]] => [] ])
 
 @test p+q == SumProdPoly{Symbol}([
  [[:B]] => [:S], [[:S]] => [:S,:A], [[:A]] => [:B],
 ])
 
-pr = otimes(p,r)
-pr_expected =
-   SumProdPoly{Symbol}([
+# Expected
+pr_x = SumProdPoly{Symbol}([
            [[:B,:B],[:B,:S]] => [:A,:S],
            [[:B,:S], [:S,:S]] => [:S,:A,:A],
            [[:B]] => [:S],
-           [[:S]] => [:S,:A]
-   ])
-@test is_isomorphic(pr,pr_expected)
+           [[:S]] => [:S,:A]])
 
+pr = otimes(p,r)
 
-# pq = times(p,q)
-# pq_expected = SumProdPoly{Symbol}([
-#             [[:B],[:B],[:S]] => [:A,:S],
-#             [[:S],[:B],[:S]] => [:S,:A,:A],
-#             [[:B],[]] => [:S],
-#             [[:S],[]] => [:S,:A]
-# ])
+@test is_isomorphic(pr,pr_x)
 
+p_times_r_x = SumProdPoly{Symbol}([ # Expected
+            [[:B],[:B],[:S]] => [:A,:S],
+            [[:S],[:B],[:S]] => [:S,:A,:A],
+            [[:B],[]] => [:S],
+            [[:S],[]] => [:S,:A]])
 
-#@test is_isomorphic(pq, pq_expected)
+p_times_r = times(p,r)
+
+@test is_isomorphic(p_times_r, p_times_r_x)
 
 end

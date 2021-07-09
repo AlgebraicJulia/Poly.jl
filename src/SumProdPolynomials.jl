@@ -6,7 +6,9 @@ export AbstractSumProdPoly, SumProdPoly, modes, signatures,
 
 using Catlab, Catlab.CategoricalAlgebra, Catlab.CategoricalAlgebra.FinSets
 using ..FinPolynomials
-import Catlab.Theories: plus, otimes, ⊗, compose
+import Catlab.Theories: plus, otimes, ⊗, compose, id
+import Catlab.CategoricalAlgebra.Limits: coproduct, product
+
 
 """
 Polynomials of the form:
@@ -64,6 +66,20 @@ end
 plus(p::AbstractSumProdPoly, q::AbstractSumProdPoly) = ob(coproduct(p, q))
 Base.:+(p::AbstractSumProdPoly, q::AbstractSumProdPoly) = plus(p, q)
 
+function product(p::FinFunction, q::FinFunction)
+  dom_prod = product(dom(p), dom(q))
+  f1 = compose(proj1(dom_prod), p)
+  f2 = compose(proj2(dom_prod), q)
+  return pair(f1, f2)
+end
+
+function coproduct(p::FinFunction, q::FinFunction)
+  codom_coprod = coproduct(codom(p), codom(q))
+  f1 = compose(p, coproj1(codom_coprod))
+  f2 = compose(q, coproj2(codom_coprod))
+  return copair(coproduct(dom(p),dom(q)), f1, f2)
+end
+
 """
 O₁M₂+M₁O₂ ⟶ M₁M₂ ⟵ S₁S₂ ⟵ I₁S₂+S₁I₂
  ↓                               ↓
@@ -78,10 +94,7 @@ function otimes(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol})::SumProdPoly{Sym
     pmodefunc, psigfunc = [FinFunction(p, x) for x in funs]
     qmodefunc, qsigfunc = [FinFunction(q, x) for x in funs]
 
-    sig_prod = product(FinSet(p, :Signature), FinSet(q, :Signature))
-    sig1 = compose(proj1(sig_prod), FinFunction(p, :mode))
-    sig2 = compose(proj2(sig_prod), FinFunction(q, :mode))
-    sig_pair = pair(sig1, sig2)
+    sig_pair = product(FinFunction(p, :mode), FinFunction(q, :mode))
     fs_out = Fibered_sum(pmodefunc, qmodefunc)
     fs_in  = Fibered_sum(psigfunc, qsigfunc)
     ot = pairsum_mapout(fs_out, p[:out_type], q[:out_type])
@@ -110,32 +123,33 @@ function times(p::SumProdPoly{Symbol}, q::SumProdPoly{Symbol}) :: SumProdPoly{Sy
     comps = [:Mode, :Signature]
     pmodes, psigs = [nparts(p, x) for x in comps]
     qmodes, qsigs = [nparts(q, x) for x in comps]
-    funs = [:out_mode, :signature]
-    pmodefunc, psigfunc = [FinFunction(p, x) for x in funs]
-    qmodefunc, qsigfunc = [FinFunction(q, x) for x in funs]
+    funs = [:out_mode, :signature, :mode]
+    poutmodefunc, psigfunc, psigmodefunc = [FinFunction(p, x) for x in funs]
+    qoutmodefunc, qsigfunc, qsigmodefunc = [FinFunction(q, x) for x in funs]
 
-    sig_prod = product(FinSet(psigs), FinSet(qsigs))
-    sig1 = compose(proj1(sig_prod), FinFunction(p[:mode], pmodes))
-    sig2 = compose(proj2(sig_prod), FinFunction(q[:mode], qmodes))
-    sig_pair = pair(sig1, sig2)
+    fs_sig = Fibered_sum(psigmodefunc, qsigmodefunc)
+    fs_out = Fibered_sum(poutmodefunc, qoutmodefunc)
+    fs_in  = Fibered_sum(compose(psigfunc, psigmodefunc), compose(qsigfunc, qsigmodefunc))
+    ot = pairsum_mapout(fs_out, p[:out_type], q[:out_type])
+    it = pairsum_mapout(fs_in, p[:in_type], q[:in_type])
 
-    fs_sig = Fibered_sum(pmodefunc,qmodefunc)
+    
+    sig1 = product(FinFunction(p, :signature), id(FinSet(q, :Mode)))
+    sig2 = product(id(FinSet(p, :Mode)), FinFunction(q, :signature))
 
+    println("sig1 $sig1\n sig2 $sig2")
+    sig = coproduct(sig1, sig2)
+    println("sig1+sig2 $sig $(collect(sig))")
     add_parts!(r, :Mode, pmodes*qmodes)
-    add_parts!(r, :Signature, pmodes*qsigs + qmodes*psigs)
+    add_parts!(r, :Signature, pmodes*qsigs + qmodes*psigs,
+               mode=collect(fs_sig.h))
 
-    add_parts!(r, :Out, nparts(p, :Out)*qmodes + nparts(q, :Out)*pmodes)
-    add_parts!(r, :In, nparts(p, :In)*qsigs + nparts(q, :In)*psigs)
-
-    #fs_out = Fibered_sum(pmodefunc, qmodefunc)
-    fs_in  = Fibered_sum(psigfunc, qsigfunc)
-
-    set_subpart!(r, :mode, collect(fs_sig.h))
-    #set_subpart!(r, :out_mode, collect(fs_out.h))
-    set_subpart!(r, :signature, collect(fs_in.h))
-
-    #set_subpart!(r, :out_type, pairsum_mapout(Fibered_sum(pmodefunc, qmodefunc), p[:out_type], q[:out_type]))
-    set_subpart!(r, :in_type, pairsum_mapout(Fibered_sum(psigfunc, qsigfunc), p[:in_type], q[:in_type]))
+    add_parts!(r, :Out, nparts(p, :Out)*qmodes + nparts(q, :Out)*pmodes,
+               out_mode = collect(fs_out.h), out_type=ot)
+    println("sig1+sig2 $sig $(collect(sig))\n $(nparts(p, :In)*qmodes + nparts(q, :In)*pmodes)")
+    add_parts!(r, :In, nparts(p, :In)*qmodes + nparts(q, :In)*pmodes,
+              signature=collect(sig), in_type=it) # BUG IN sig , 
+    # 
 
     return r
 
