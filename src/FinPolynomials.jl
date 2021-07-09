@@ -6,11 +6,13 @@ of polynomials, see the module [`SumProdPolynomials`](@ref).
 """
 module FinPolynomials
 export AbstractFinPoly, FinPoly, FinSet, FinFunction, positions, directions,
-  proj, plus, times, otimes, ⊗
+  proj, plus, otimes, ⊗, Fibered_sum
 
 using Catlab, Catlab.CategoricalAlgebra, Catlab.CategoricalAlgebra.FinSets
 using Catlab.Theories
 import Catlab.Theories: proj, plus, otimes, ⊗
+
+using Catlab.CategoricalAlgebra.Limits
 
 @present FinPolySchema(FreeSchema) begin
   (Pos, Dir)::Ob
@@ -61,7 +63,7 @@ proj(p::AbstractFinPoly) = FinFunction(p, :pos)
 plus(p::AbstractFinPoly, q::AbstractFinPoly) = ob(coproduct(p, q))
 Base.:+(p::AbstractFinPoly, q::AbstractFinPoly) = plus(p, q)
 
-times(p::P, q::P) where P <: AbstractFinPoly = P(fiber_sum(proj(p), proj(q)))
+times(p::P, q::P) where P <: AbstractFinPoly = P(Fibered_sum(proj(p), proj(q)).h)
 Base.:*(p::AbstractFinPoly, q::AbstractFinPoly) = times(p, q)
 
 otimes(p::AbstractFinPoly, q::AbstractFinPoly) = ob(product(p, q))
@@ -75,13 +77,29 @@ otimes(p::AbstractFinPoly, q::AbstractFinPoly) = ob(product(p, q))
 Given indexed sets ``Xᵢ``, ``i ∈ I``, and ``Yⱼ``, ``j ∈ J``, represented by
 functions ``f: X → I`` and ``g: Y → J``, compute the "fiber sum" ``Xᵢ+Yⱼ``,
 ``(i,j) ∈ I×J``, as a function ``X×J + I×Y → I×J``.
+
+domain: XI+YJ
+h: function described above.
+p1: XJ -> X
+p2: IY -> Y
+
 """
-function fiber_sum(f, g)
-  X, Y, I, J = dom(f), dom(g), codom(f), codom(g)
-  XJ, IY, IJ = product(X,J), product(I,Y), product(I,J)
-  fJ = pair(IJ, proj1(XJ)⋅f, proj2(XJ)) # f×id(J) : X×J → I×J
-  Ig = pair(IJ, proj1(IY), proj2(IY)⋅g) # id(I)×g : I×Y → I×J
-  copair(coproduct(ob(XJ), ob(IY)), fJ, Ig)
+
+struct Fibered_sum
+    domain::Colimit
+    h::FinFunction
+    p1::FinFunction
+    p2::FinFunction
+
+    function Fibered_sum(f::FinFunction, g::FinFunction)
+        X, Y, I, J = dom(f), dom(g), codom(f), codom(g)
+        XJ, IY, IJ = product(X,J), product(I,Y), product(I,J)
+        fJ = pair(IJ, proj1(XJ)⋅f, proj2(XJ)) # f×id(J) : X×J → I×J
+        Ig = pair(IJ, proj1(IY), proj2(IY)⋅g) # id(I)×g : I×Y → I×J
+        domain = coproduct(ob(XJ), ob(IY))
+        h = copair(domain, fJ, Ig)
+        return new(domain, h, proj1(XJ), proj2(IY))
+    end
 end
 
 end
