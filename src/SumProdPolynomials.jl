@@ -13,14 +13,14 @@ import Catlab.Theories: plus, otimes, ⊗
   out_mode::Hom(Out, Mode)
   signature::Hom(In, Signature)
 
-  Type::Data
+  Type::AttrType
   out_type::Attr(Out, Type)
   in_type::Attr(In, Type)
 end
 
-const AbstractSumProdPoly = AbstractACSetType(SumProdPolySchema)
-const SumProdPoly = ACSetType(SumProdPolySchema,
-                              index=[:mode,:out_mode,:signature])
+@abstract_acset_type AbstractSumProdPoly
+@acset_type SumProdPoly(SumProdPolySchema,
+                        index=[:mode,:out_mode,:signature]) <: AbstractSumProdPoly
 
 function (::Type{P})(modes::AbstractVector) where P <: AbstractSumProdPoly
   p = P()

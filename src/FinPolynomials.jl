@@ -19,7 +19,7 @@ end
 
 """ Abstract type for finite polynomial. See [`FinPolynomial`](@ref).
 """
-const AbstractFinPoly = AbstractACSetType(FinPolySchema)
+@abstract_acset_type AbstractFinPoly
 
 """ Finite polynomial, i.e., polynomial endofunctor on FinSet.
 
@@ -27,7 +27,7 @@ Finite polynomials can be constructed from a list of exponents or from the
 position-direction projection. For example, both `FinPoly([3,2,0])` and
 `FinPoly(FinFunction([1,1,1,2,2],3))` yield the polynomial ``y³+y²+1``.
 """
-const FinPoly = ACSetType(FinPolySchema, index=[:pos])
+@acset_type FinPoly(FinPolySchema, index=[:pos]) <: AbstractFinPoly
 
 function (::Type{P})(ndirs::AbstractVector{Int}) where P <: AbstractFinPoly
   p = P()
