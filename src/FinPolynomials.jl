@@ -52,7 +52,7 @@ positions(p::AbstractFinPoly) = FinSet(p, :Pos)
 """ All directions of a polynomial, or directions at a given position.
 """
 directions(p::AbstractFinPoly) = FinSet(p, :Dir)
-directions(p::AbstractFinPoly, pos) = incident(p, :pos, pos)
+directions(p::AbstractFinPoly, pos) = incident(p, pos, :pos)
 
 """ Projection from directions to positions in a polynomial.
 """
